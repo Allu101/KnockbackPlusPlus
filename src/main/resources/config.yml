@@ -10,6 +10,7 @@ cmd-on-ban:
   
 check-time: 1.5
 enable-random-checks: true
+min-notify-percentage: 0.3
 violation-lvl:
   increase: 1
   decrease: 0.5

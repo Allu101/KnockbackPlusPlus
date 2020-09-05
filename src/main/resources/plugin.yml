@@ -4,3 +4,10 @@ main: tk.hugo4715.anticheat.KbPlus
 author: hugo4715
 softdepend:
   - ProtocolLib
+commands:
+  knockbackplug:
+    aliases: [kbplus]
+    permission: knockbackplusplus.reload
+permissions:
+  knockbackplusplus.reload:
+    default: op

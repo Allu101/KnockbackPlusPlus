@@ -13,8 +13,10 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
@@ -72,6 +74,16 @@ public class KbChecker extends PacketAdapter implements Listener, CommandExecuto
 		}
 	}
 
+	@EventHandler
+	public void onPlayerDeath(PlayerDeathEvent e) {
+		players.remove(e.getEntity().getEntityId());
+	}
+
+	@EventHandler
+	public void onPlayerRespawn(PlayerRespawnEvent e) {
+		players.put(e.getPlayer().getEntityId(), new ACPlayer(e.getPlayer()));
+	}
+
 	@Override
 	public void onPacketSending(PacketEvent event) {
 		int entId = event.getPacket().getIntegers().getValues().get(0);
@@ -82,6 +94,9 @@ public class KbChecker extends PacketAdapter implements Listener, CommandExecuto
 	private void onVelocityPacket(int entId, int velY) {
 		//found player
 		ACPlayer acp = players.get(entId);
+		if (acp == null) {
+			return;
+		}
 		Player p = acp.getPlayer();
 		//sync process in order to fix
 		new BukkitRunnable() {
@@ -92,7 +107,6 @@ public class KbChecker extends PacketAdapter implements Listener, CommandExecuto
 						p.isFlying() || acp.isInWeb() || acp.isInWater() || p.isDead() || p.getGameMode().equals(GameMode.CREATIVE)) {
 					return;
 				}
-
 				final int ticksToReact = (int) (KbPlus.get().getConfig().getDouble("check-time",1.5)*20);//ticks for the client to get up
 
 				if (velY < 5000){
@@ -125,13 +139,15 @@ public class KbChecker extends PacketAdapter implements Listener, CommandExecuto
 		//new equation is y = 8E-08x2 + 1E-04x - 0,0219
 		//double predictedY = 0.0006 * packetY - 0.8253;
 		double predictedY = (0.00000008 * packetY * packetY) + (0.0001 * packetY)- 0.0219;
-		if (predictedY < realY || gp.getPlayer().hasPermission("knockbackplusplus.bypass")){
+		if (predictedY < realY || gp.getPlayer().hasPermission("knockbackplusplus.bypass")) {
 			//legit
 			gp.onLegit();
 		} else {
 			//hax
 			double percentage = Math.abs(((realY-predictedY)/predictedY));
-			gp.onViolation(percentage);
+			if (percentage > KbPlus.get().getConfig().getDouble("min-notify-percentage", 0.3)) {
+				gp.onViolation(percentage);
+			}
 		}
 	}
 
