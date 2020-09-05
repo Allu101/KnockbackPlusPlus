@@ -1,11 +1,11 @@
-package tk.hugo4715.anticheat.util;
-
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
+package tk.hugo4715.anticheat;
 
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
+
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 
 public class Util {
 	public boolean isThereWallsAround(Player p) {
