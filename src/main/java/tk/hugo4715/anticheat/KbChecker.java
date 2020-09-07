@@ -31,7 +31,7 @@ public class KbChecker extends PacketAdapter implements Listener, CommandExecuto
 		super(KbPlus.get(), ListenerPriority.MONITOR, PacketType.Play.Server.ENTITY_VELOCITY);
 		ProtocolLibrary.getProtocolManager().addPacketListener(this);
 
-		if (KbPlus.get().getConfig().getBoolean("enable-random-checks",true)) {
+		if (KbPlus.get().getConfig().getBoolean("enable-random-checks",false)) {
 			KbPlus.get().getLogger().info("Enabled random checks.");
 			new BukkitRunnable() {
 				
@@ -56,7 +56,7 @@ public class KbChecker extends PacketAdapter implements Listener, CommandExecuto
 	public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
 		if (cmd.getName().equalsIgnoreCase("knockbackplug") && args.length == 1 && args[0].equalsIgnoreCase("reload")) {
 			KbPlus.get().reloadConfig();
-			sender.sendMessage(ChatColor.GREEN + "Config successfully reloaded!");
+			KbPlus.get().getLogger().info(ChatColor.GREEN + "Config successfully reloaded!");
 		}
 		return false;
 	}
@@ -97,14 +97,17 @@ public class KbChecker extends PacketAdapter implements Listener, CommandExecuto
 		if (acp == null) {
 			return;
 		}
+		if (acp.getPlayer().getGameMode() != GameMode.ADVENTURE) {
+			return;
+		}
 		Player p = acp.getPlayer();
 		//sync process in order to fix
 		new BukkitRunnable() {
 			@Override
 			public void run() {
 				//don't check if there is a ceiling or anything that could block from taking kb
-				if (acp.hasCeiling() || !p.isOnGround() || acp.isOnLadder() || p.isInsideVehicle() || p.getFireTicks() > 0 ||
-						p.isFlying() || acp.isInWeb() || acp.isInWater() || p.isDead() || p.getGameMode().equals(GameMode.CREATIVE)) {
+				if (acp.hasCeiling() || !p.isOnGround() || acp.isOnLadder() || p.isInsideVehicle() ||
+						p.getFireTicks() > 0 || p.isFlying() || acp.isInWeb() || acp.isInWater() || p.isDead()) {
 					return;
 				}
 				final int ticksToReact = (int) (KbPlus.get().getConfig().getDouble("check-time",1.5)*20);//ticks for the client to get up
@@ -118,35 +121,34 @@ public class KbChecker extends PacketAdapter implements Listener, CommandExecuto
 
 						@Override
 						public void run() {
-							iterations++;
+							iterations += 2;
 							if (p.getLocation().getY()-baseY > reachedY) {
 								reachedY = p.getLocation().getY()-baseY;
 							}
-							if (iterations > ticksToReact){
+							if (iterations >= ticksToReact){
 								checkKnockback(acp, velY, reachedY);
 								cancel();
 							}
 						}
-					}.runTaskTimer(KbPlus.get(), 1, 1);
+					}.runTaskTimer(KbPlus.get(), 2, 2);
 				}
 			}
 		}.runTask(KbPlus.get());
-		return;
 	}
 
-	private void checkKnockback(ACPlayer gp , int packetY, double realY) {
+	private void checkKnockback(ACPlayer acp, int packetY, double realY) {
 		//old equation is y = 0,0006x - 0,8253 (thx excel)
 		//new equation is y = 8E-08x2 + 1E-04x - 0,0219
 		//double predictedY = 0.0006 * packetY - 0.8253;
 		double predictedY = (0.00000008 * packetY * packetY) + (0.0001 * packetY)- 0.0219;
-		if (predictedY < realY || gp.getPlayer().hasPermission("knockbackplusplus.bypass")) {
+		if (predictedY < realY || acp.getPlayer().hasPermission("knockbackplusplus.bypass")) {
 			//legit
-			gp.onLegit();
+			acp.onLegit();
 		} else {
 			//hax
 			double percentage = Math.abs(((realY-predictedY)/predictedY));
 			if (percentage > KbPlus.get().getConfig().getDouble("min-notify-percentage", 0.3)) {
-				gp.onViolation(percentage);
+				acp.onViolation(percentage);
 			}
 		}
 	}
