@@ -5,7 +5,7 @@ author: hugo4715
 softdepend:
   - ProtocolLib
 commands:
-  knockbackplug:
+  knockbackplus:
     aliases: [kbplus]
     permission: knockbackplusplus.reload
 permissions:

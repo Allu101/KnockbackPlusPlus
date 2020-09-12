@@ -11,28 +11,36 @@ import org.bukkit.entity.Player;
 import java.util.List;
 
 public class ACPlayer {
-	private Player player;
-	
+
 	public int violations = 0;
+
+	private Player player;
+	private String name;
+	private int notifyTimes = 0;
 	
 	public ACPlayer(Player p) {
 		this.player = p;
+		name = p.getName();
 	}
 	
-	public boolean hasCeiling(){
+	public boolean hasCeiling() {
 		Location loc = player.getLocation().clone().add(0, 2, 0);
-		if(loc.getBlock().getType().isSolid())return true;
-		else if(loc.getX() > 0.66 && loc.getBlock().getRelative(BlockFace.EAST).getType().isSolid())return true;
-		else if(loc.getX() < -0.66 && loc.getBlock().getRelative(BlockFace.WEST).getType().isSolid())return true;
-		else if(loc.getZ() > 0.66 && loc.getBlock().getRelative(BlockFace.SOUTH).getType().isSolid())return true;
-		else return loc.getZ() < -0.66 && loc.getBlock().getRelative(BlockFace.NORTH).getType().isSolid();
+		if (loc.getBlock().getType().isSolid()) {
+			return true;
+		} else if (loc.getX() > 0.66 && loc.getBlock().getRelative(BlockFace.EAST).getType().isSolid()) {
+			return true;
+		} else if (loc.getX() < -0.66 && loc.getBlock().getRelative(BlockFace.WEST).getType().isSolid()) {
+			return true;
+		} else if (loc.getZ() > 0.66 && loc.getBlock().getRelative(BlockFace.SOUTH).getType().isSolid()) {
+			return true;
+		} else return loc.getZ() < -0.66 && loc.getBlock().getRelative(BlockFace.NORTH).getType().isSolid();
 	}
 	
 	public Player getPlayer() {
 		return player;
 	}
 
-	public boolean isInWater(){
+	public boolean isInWater() {
 		return player.getLocation().getBlock().isLiquid() || player.getLocation().clone().add(0, -1, 0).getBlock().isLiquid() || player.getLocation().clone().add(0, 1, 0).getBlock().isLiquid();
 	}
 	
@@ -81,7 +89,11 @@ public class ACPlayer {
 	private boolean isClimbable(Block b){
 		return b.getType().equals(Material.LADDER) || b.getType().equals(Material.VINE);
 	}
-	
+
+	public int getNotifyTimes() {
+		return notifyTimes;
+	}
+
 	public void onViolation(double percent) {
 		if(percent < 0) {
 			return;
@@ -90,26 +102,19 @@ public class ACPlayer {
 		
 		if (violations >= KbPlus.get().getConfig().getInt("violation-lvl.max")){
 			sanction(percent);
+			notifyTimes++;
 		}
 	}
 	
 	public void sanction(double percent){
-		if(player.isOnline()){
-			List<String> cmds = KbPlus.get().getConfig().getStringList("cmd-on-ban");
-			System.out.println("percent" + percent*100.0);
-			cmds.forEach( cmd -> {
-				cmd = cmd.replace("%player%", player.getName()).replace("%prefix%", KbPlus.PREFIX)
-						.replace("%kb%", Math.round(percent*100.0)+"");
-				cmd = ChatColor.translateAlternateColorCodes('&', cmd);
-				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
-			});
-		}
+		KbPlus.get().getConfig().getStringList("cmd-on-ban").forEach( cmd -> {
+			cmd = cmd.replace("%player%", name).replace("%kb%", Math.round(percent*100.0) + "");
+			Bukkit.dispatchCommand(Bukkit.getConsoleSender(), ChatColor.translateAlternateColorCodes('&', cmd));
+		});
 	}
 	
 	public void onLegit(){
 		violations -= KbPlus.get().getConfig().getInt("violation-lvl.decrease");
-		if (violations < 0) {
-			violations = 0;
-		}
+		violations = Math.max(0, violations);
 	}
 }

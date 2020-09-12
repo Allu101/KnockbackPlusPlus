@@ -21,6 +21,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class KbChecker extends PacketAdapter implements Listener, CommandExecutor {
@@ -43,7 +44,7 @@ public class KbChecker extends PacketAdapter implements Listener, CommandExecuto
 						if (gp.violations > 0){
 							chance = 1;
 						}
-						if (gp.getPlayer().isOnGround() && !gp.isInWater() && !gp.isOnLadder() && !gp.isInWeb() && Math.random() < chance){
+						if (!gp.isInWater() && !gp.isOnLadder() && !gp.isInWeb() && Math.random() < chance) {
 							gp.getPlayer().setVelocity(new Vector(0,0.2,0));
 						}
 					}
@@ -54,7 +55,7 @@ public class KbChecker extends PacketAdapter implements Listener, CommandExecuto
 
 	@Override
 	public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
-		if (cmd.getName().equalsIgnoreCase("knockbackplug") && args.length == 1 && args[0].equalsIgnoreCase("reload")) {
+		if (cmd.getName().equalsIgnoreCase("knockbackplus") && args.length == 1 && args[0].equalsIgnoreCase("reload")) {
 			KbPlus.get().reloadConfig();
 			KbPlus.get().getLogger().info(ChatColor.GREEN + "Config successfully reloaded!");
 		}
@@ -86,33 +87,33 @@ public class KbChecker extends PacketAdapter implements Listener, CommandExecuto
 
 	@Override
 	public void onPacketSending(PacketEvent event) {
-		int entId = event.getPacket().getIntegers().getValues().get(0);
-		int velY = event.getPacket().getIntegers().getValues().get(2);
-		onVelocityPacket(entId,velY);
+		onVelocityPacket(event.getPacket().getIntegers().getValues());
 	}
 
-	private void onVelocityPacket(int entId, int velY) {
+	private void onVelocityPacket(List<Integer> values) {
 		//found player
-		ACPlayer acp = players.get(entId);
+		ACPlayer acp = players.get(values.get(0));
 		if (acp == null) {
 			return;
 		}
-		if (acp.getPlayer().getGameMode() != GameMode.ADVENTURE) {
+		if (acp.getNotifyTimes() >= KbPlus.get().getConfig().getInt("max-notify-times") || acp.getPlayer().getGameMode() != GameMode.ADVENTURE) {
 			return;
 		}
+		int velY = values.get(2);
 		Player p = acp.getPlayer();
+		if (velY < 0) {
+			return;
+		}
 		//sync process in order to fix
 		new BukkitRunnable() {
 			@Override
 			public void run() {
 				//don't check if there is a ceiling or anything that could block from taking kb
-				if (acp.hasCeiling() || !p.isOnGround() || acp.isOnLadder() || p.isInsideVehicle() ||
-						p.getFireTicks() > 0 || p.isFlying() || acp.isInWeb() || acp.isInWater() || p.isDead()) {
+				if (acp.hasCeiling() || acp.isOnLadder() || p.isInsideVehicle() || p.getFireTicks() > 0 || p.isFlying() ||
+						acp.isInWeb() || acp.isInWater() || p.isDead() || KbPlus.get().isThereWallsAround(p, values.get(1), values.get(3))) {
 					return;
 				}
-				final int ticksToReact = (int) (KbPlus.get().getConfig().getDouble("check-time",1.5)*20);//ticks for the client to get up
-
-				if (velY < 5000){
+				if (velY < 4000){
 					//give client some time to react
 					new BukkitRunnable() {
 						private int iterations = 0;
@@ -125,7 +126,7 @@ public class KbChecker extends PacketAdapter implements Listener, CommandExecuto
 							if (p.getLocation().getY()-baseY > reachedY) {
 								reachedY = p.getLocation().getY()-baseY;
 							}
-							if (iterations >= ticksToReact){
+							if (iterations >= (int) (KbPlus.get().getConfig().getDouble("check-time",1.3)*20)){
 								checkKnockback(acp, velY, reachedY);
 								cancel();
 							}
@@ -147,7 +148,7 @@ public class KbChecker extends PacketAdapter implements Listener, CommandExecuto
 		} else {
 			//hax
 			double percentage = Math.abs(((realY-predictedY)/predictedY));
-			if (percentage > KbPlus.get().getConfig().getDouble("min-notify-percentage", 0.3)) {
+			if (percentage > KbPlus.get().getConfig().getDouble("min-notify-percentage", 0.4)) {
 				acp.onViolation(percentage);
 			}
 		}

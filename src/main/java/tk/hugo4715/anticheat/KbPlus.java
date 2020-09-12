@@ -1,17 +1,24 @@
 package tk.hugo4715.anticheat;
 
 import com.comphenix.protocol.ProtocolLibrary;
-import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.block.Block;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.UnknownDependencyException;
 import org.bukkit.plugin.java.JavaPlugin;
+
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 
 /**
  * @author hugo4715
  */
 public class KbPlus extends JavaPlugin {
-	public static final String PREFIX = ChatColor.GOLD + "[" + ChatColor.GREEN + "AntiCheat" + ChatColor.GOLD + "]" + ChatColor.GREEN;
 
+	private static Method getHandleMethod;
+	private static Field pingField;
 	private KbChecker kbChecker;
 
 	@Override
@@ -19,16 +26,14 @@ public class KbPlus extends JavaPlugin {
 		saveDefaultConfig();
 
 		if (Bukkit.getPluginManager().isPluginEnabled("ProtocolLib")){
-			this.kbChecker = new KbChecker();
+			kbChecker = new KbChecker();
 		} else {
-			getLogger().severe("");
-			getLogger().severe("ProtocolLib is required for this plugin!");
-			getLogger().severe("");
+			getLogger().warning("ProtocolLib is required for this plugin!");
 			Bukkit.getPluginManager().disablePlugin(this);
 			throw new UnknownDependencyException("ProtocolLib");
 		}
 		getServer().getPluginManager().registerEvents(kbChecker, this);
-		getCommand("knockbackplug").setExecutor(kbChecker);
+		getCommand("knockbackplus").setExecutor(kbChecker);
 	}
 
 	@Override
@@ -40,5 +45,51 @@ public class KbPlus extends JavaPlugin {
 
 	public static KbPlus get(){
 		return getPlugin(KbPlus.class);
+	}
+
+	public boolean isThereWallsAround(Player p, Integer velX, Integer velZ) {
+		double x = p.getLocation().getX();
+		double z = p.getLocation().getX();
+		Location pLoc = p.getLocation().clone();
+		if (velX < 0 && x < 0) {
+			if (pLoc.clone().add(-1, 0, 0).getBlock().getType() != Material.AIR ||
+					pLoc.clone().add(-1, 1, 0).getBlock().getType() != Material.AIR) {
+				return true;
+			}
+		} else if (velX > 0 && x > 0) {
+			if (pLoc.clone().add(1, 0, 0).getBlock().getType() != Material.AIR ||
+					pLoc.clone().add(1, 1, 0).getBlock().getType() != Material.AIR) {
+				return true;
+			}
+		} else if (velZ < 0 && z < 0) {
+			if (pLoc.clone().add(0, 0, -1).getBlock().getType() != Material.AIR ||
+					pLoc.clone().add(0, 1, -1).getBlock().getType() != Material.AIR) {
+				return true;
+			}
+		} else if (velZ > 0 && z > 0) {
+			if (pLoc.clone().add(0, 0, 1).getBlock().getType() != Material.AIR ||
+					pLoc.clone().add(0, 1, 1).getBlock().getType() != Material.AIR) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public int getPing(Player player) {
+		try {
+			if (getHandleMethod == null) {
+				getHandleMethod = player.getClass().getDeclaredMethod("getHandle");
+				getHandleMethod.setAccessible(true);
+			}
+			Object entityPlayer = getHandleMethod.invoke(player);
+			if (pingField == null) {
+				pingField = entityPlayer.getClass().getDeclaredField("ping");
+				pingField.setAccessible(true);
+			}
+			return pingField.getInt(entityPlayer);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return -1;
 	}
 }
