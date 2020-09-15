@@ -8,15 +8,13 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 
-import java.util.List;
-
 public class ACPlayer {
 
-	public int violations = 0;
+	public int violations;
 
+	private int notifyTimes;
 	private Player player;
 	private String name;
-	private int notifyTimes = 0;
 	
 	public ACPlayer(Player p) {
 		this.player = p;
@@ -40,12 +38,13 @@ public class ACPlayer {
 		return player;
 	}
 
-	public boolean isInWater() {
-		return player.getLocation().getBlock().isLiquid() || player.getLocation().clone().add(0, -1, 0).getBlock().isLiquid() || player.getLocation().clone().add(0, 1, 0).getBlock().isLiquid();
+	public boolean isInWater(Location pLoc) {
+		return pLoc.getBlock().isLiquid() || pLoc.clone().add(0, -1, 0).getBlock().isLiquid() ||
+				pLoc.clone().add(0, 1, 0).getBlock().isLiquid();
 	}
 	
-	public boolean isInWeb() {
-		Location loc = player.getLocation().clone();
+	public boolean isInWeb(Location loc) {
+		loc = loc.clone();
 		double x = loc.getX()-loc.getBlockX();
 		double z = loc.getZ()-loc.getBlockZ();
 
@@ -53,14 +52,13 @@ public class ACPlayer {
 			return true;
 		}
 
-		loc = player.getLocation().clone().add(0, 1, 0);
+		loc = loc.clone().add(0, 1, 0);
 		x = loc.getX()-loc.getBlockX();
 		z = loc.getZ()-loc.getBlockZ();
 
 		if (insideWeb(loc, x, z)) {
 			return true;
 		}
-
 		return false;
 	}
 
@@ -81,8 +79,8 @@ public class ACPlayer {
 		x < 0.31 && z < 0.31 && isWeb(block.getRelative(BlockFace.WEST).getRelative(BlockFace.NORTH));
 	}
 
-	public boolean isOnLadder(){
-		Block loc = player.getLocation().getBlock();
+	public boolean isOnLadder(Location pLoc){
+		Block loc = pLoc.getBlock();
 		return isClimbable(loc) || isClimbable(loc.getRelative(BlockFace.UP)) || isClimbable(loc.getRelative(BlockFace.DOWN));
 	}
 
@@ -94,23 +92,17 @@ public class ACPlayer {
 		return notifyTimes;
 	}
 
-	public void onViolation(double percent) {
-		if(percent < 0) {
-			return;
-		}
+	public void onViolation(double percent, double realY) {
 		violations+= KbPlus.get().getConfig().getInt("violation-lvl.increase");
 		
 		if (violations >= KbPlus.get().getConfig().getInt("violation-lvl.max")){
-			sanction(percent);
+			KbPlus.get().getConfig().getStringList("cmd-on-ban").forEach( cmd -> {
+				cmd = cmd.replace("%player%", name).replace("%kb%", Math.round(percent*100.0) + "")
+						.replace("%value%", realY + "");
+				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), ChatColor.translateAlternateColorCodes('&', cmd));
+			});
 			notifyTimes++;
 		}
-	}
-	
-	public void sanction(double percent){
-		KbPlus.get().getConfig().getStringList("cmd-on-ban").forEach( cmd -> {
-			cmd = cmd.replace("%player%", name).replace("%kb%", Math.round(percent*100.0) + "");
-			Bukkit.dispatchCommand(Bukkit.getConsoleSender(), ChatColor.translateAlternateColorCodes('&', cmd));
-		});
 	}
 	
 	public void onLegit(){

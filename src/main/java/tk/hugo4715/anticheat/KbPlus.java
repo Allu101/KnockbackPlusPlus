@@ -4,7 +4,6 @@ import com.comphenix.protocol.ProtocolLibrary;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.UnknownDependencyException;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -47,26 +46,23 @@ public class KbPlus extends JavaPlugin {
 		return getPlugin(KbPlus.class);
 	}
 
-	public boolean isThereWallsAround(Player p, Integer velX, Integer velZ) {
-		double x = p.getLocation().getX();
-		double z = p.getLocation().getX();
-		Location pLoc = p.getLocation().clone();
-		if (velX < 0 && x < 0) {
+	public boolean isThereWallsAround(Location pLoc, Integer velX, Integer velZ) {
+		if (velX < 0) {
 			if (pLoc.clone().add(-1, 0, 0).getBlock().getType() != Material.AIR ||
 					pLoc.clone().add(-1, 1, 0).getBlock().getType() != Material.AIR) {
 				return true;
 			}
-		} else if (velX > 0 && x > 0) {
+		} else if (velX > 0) {
 			if (pLoc.clone().add(1, 0, 0).getBlock().getType() != Material.AIR ||
 					pLoc.clone().add(1, 1, 0).getBlock().getType() != Material.AIR) {
 				return true;
 			}
-		} else if (velZ < 0 && z < 0) {
+		} else if (velZ < 0) {
 			if (pLoc.clone().add(0, 0, -1).getBlock().getType() != Material.AIR ||
 					pLoc.clone().add(0, 1, -1).getBlock().getType() != Material.AIR) {
 				return true;
 			}
-		} else if (velZ > 0 && z > 0) {
+		} else if (velZ > 0) {
 			if (pLoc.clone().add(0, 0, 1).getBlock().getType() != Material.AIR ||
 					pLoc.clone().add(0, 1, 1).getBlock().getType() != Material.AIR) {
 				return true;

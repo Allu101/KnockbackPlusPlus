@@ -7,6 +7,7 @@ import com.comphenix.protocol.events.PacketAdapter;
 import com.comphenix.protocol.events.PacketEvent;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
+import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -40,11 +41,11 @@ public class KbChecker extends PacketAdapter implements Listener, CommandExecuto
 				public void run() {
 					for (ACPlayer gp : players.values()) {
 						double chance = 0.1;
-						
 						if (gp.violations > 0){
 							chance = 1;
 						}
-						if (!gp.isInWater() && !gp.isOnLadder() && !gp.isInWeb() && Math.random() < chance) {
+						Location pLoc = gp.getPlayer().getLocation();
+						if (!gp.isInWater(pLoc) && !gp.isOnLadder(pLoc) && !gp.isInWeb(pLoc) && Math.random() < chance) {
 							gp.getPlayer().setVelocity(new Vector(0,0.2,0));
 						}
 					}
@@ -108,9 +109,11 @@ public class KbChecker extends PacketAdapter implements Listener, CommandExecuto
 		new BukkitRunnable() {
 			@Override
 			public void run() {
+				Location pLoc = p.getLocation();
 				//don't check if there is a ceiling or anything that could block from taking kb
-				if (acp.hasCeiling() || acp.isOnLadder() || p.isInsideVehicle() || p.getFireTicks() > 0 || p.isFlying() ||
-						acp.isInWeb() || acp.isInWater() || p.isDead() || KbPlus.get().isThereWallsAround(p, values.get(1), values.get(3))) {
+				if (acp.hasCeiling() || acp.isOnLadder(pLoc) || p.isInsideVehicle() || !p.isOnGround() || p.isFlying() ||
+					acp.isInWeb(pLoc) || acp.isInWater(pLoc) || p.isDead() || p.getFireTicks() > 0 ||
+						KbPlus.get().isThereWallsAround(pLoc, values.get(1), values.get(3))) {
 					return;
 				}
 				if (velY < 4000){
@@ -118,13 +121,13 @@ public class KbChecker extends PacketAdapter implements Listener, CommandExecuto
 					new BukkitRunnable() {
 						private int iterations = 0;
 						double reachedY = 0;//dif reached
-						double baseY = p.getLocation().getY();
+						double baseY = pLoc.getY();
 
 						@Override
 						public void run() {
 							iterations += 2;
-							if (p.getLocation().getY()-baseY > reachedY) {
-								reachedY = p.getLocation().getY()-baseY;
+							if (pLoc.getY()-baseY > reachedY) {
+								reachedY = pLoc.getY()-baseY;
 							}
 							if (iterations >= (int) (KbPlus.get().getConfig().getDouble("check-time",1.3)*20)){
 								checkKnockback(acp, velY, reachedY);
@@ -149,7 +152,7 @@ public class KbChecker extends PacketAdapter implements Listener, CommandExecuto
 			//hax
 			double percentage = Math.abs(((realY-predictedY)/predictedY));
 			if (percentage > KbPlus.get().getConfig().getDouble("min-notify-percentage", 0.4)) {
-				acp.onViolation(percentage);
+				acp.onViolation(percentage, realY);
 			}
 		}
 	}
