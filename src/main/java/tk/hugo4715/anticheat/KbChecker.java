@@ -8,6 +8,8 @@ import com.comphenix.protocol.events.PacketEvent;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.block.BlockFace;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -97,11 +99,12 @@ public class KbChecker extends PacketAdapter implements Listener, CommandExecuto
 		if (acp == null) {
 			return;
 		}
-		if (acp.getNotifyTimes() >= KbPlus.get().getConfig().getInt("max-notify-times") || acp.getPlayer().getGameMode() != GameMode.ADVENTURE) {
+		Player p = acp.getPlayer();
+		if (acp.getNotifyTimes() >= KbPlus.get().getConfig().getInt("max-notify-times") ||
+				p.getGameMode() != GameMode.ADVENTURE || p.getLocation().getY() < 0) {
 			return;
 		}
 		int velY = values.get(2);
-		Player p = acp.getPlayer();
 		if (velY < 0) {
 			return;
 		}
@@ -116,7 +119,10 @@ public class KbChecker extends PacketAdapter implements Listener, CommandExecuto
 						KbPlus.get().isThereWallsAround(pLoc, values.get(1), values.get(3))) {
 					return;
 				}
-				if (velY < 4000){
+				if (velY < 4000) {
+					if (pLoc.getBlock().getRelative(BlockFace.DOWN).getType() == Material.AIR) {
+						return;
+					}
 					//give client some time to react
 					new BukkitRunnable() {
 						private int iterations = 0;
@@ -129,7 +135,10 @@ public class KbChecker extends PacketAdapter implements Listener, CommandExecuto
 							if (pLoc.getY()-baseY > reachedY) {
 								reachedY = pLoc.getY()-baseY;
 							}
-							if (iterations >= (int) (KbPlus.get().getConfig().getDouble("check-time",1.3)*20)){
+							if (iterations >= (int) (KbPlus.get().getConfig().getDouble("check-time",1.3)*20)) {
+								if (pLoc.getY() > baseY) {
+									return;
+								}
 								checkKnockback(acp, velY, reachedY);
 								cancel();
 							}
