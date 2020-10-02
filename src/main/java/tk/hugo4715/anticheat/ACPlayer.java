@@ -95,13 +95,13 @@ public class ACPlayer {
 	public void onViolation(double percent, double realY) {
 		violations+= KbPlus.get().getConfig().getInt("violation-lvl.increase");
 		
-		if (violations >= KbPlus.get().getConfig().getInt("violation-lvl.max")){
+		if (violations >= KbPlus.get().getConfig().getInt("violation-lvl.max")) {
+			notifyTimes++;
 			KbPlus.get().getConfig().getStringList("cmd-on-ban").forEach( cmd -> {
 				cmd = cmd.replace("%player%", name).replace("%kb%", Math.round(percent*100.0) + "")
 						.replace("%value%", realY + "");
 				Bukkit.dispatchCommand(Bukkit.getConsoleSender(), ChatColor.translateAlternateColorCodes('&', cmd));
 			});
-			notifyTimes++;
 		}
 	}
 	

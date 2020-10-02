@@ -131,19 +131,19 @@ public class KbChecker extends PacketAdapter implements Listener, CommandExecuto
 
 						@Override
 						public void run() {
-							iterations += 2;
-							if (pLoc.getY()-baseY > reachedY) {
-								reachedY = pLoc.getY()-baseY;
+							iterations ++;
+							if (p.getLocation().getY()-baseY > reachedY) {
+								reachedY = p.getLocation().getY()-baseY;
 							}
 							if (iterations >= (int) (KbPlus.get().getConfig().getDouble("check-time",1.3)*20)) {
-								if (pLoc.getY() < baseY) {
+								if (p.getLocation().getY() <= baseY) {
 									return;
 								}
 								checkKnockback(acp, velY, reachedY);
 								cancel();
 							}
 						}
-					}.runTaskTimer(KbPlus.get(), 2, 2);
+					}.runTaskTimer(KbPlus.get(), 0, 1);
 				}
 			}
 		}.runTask(KbPlus.get());
